@@ -1,0 +1,23 @@
+{
+  "name": "qprint",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "QPrint - campus online printing service (Phase 1 / MVP)",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "init:db": "node server/src/scripts/init-db.js",
+    "dev": "node scripts/dev.js",
+    "dev:server": "node --watch server/src/index.js",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "start": "node server/src/index.js",
+    "test": "npm test --workspace server"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

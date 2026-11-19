@@ -65,6 +65,21 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+-- Temporary uploads that are not yet part of an order.
+-- The client uses `token` to preview the converted PDF. Once an order is
+-- created, order_id is set and the preview route stops serving the file, so
+-- the public order page can never be used to download documents.
+CREATE TABLE IF NOT EXISTS uploads (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  token         TEXT    NOT NULL UNIQUE,
+  original_name TEXT    NOT NULL,
+  stored_path   TEXT    NOT NULL,
+  page_count    INTEGER NOT NULL CHECK (page_count >= 1),
+  size_bytes    INTEGER NOT NULL CHECK (size_bytes >= 0),
+  created_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  order_id      INTEGER REFERENCES orders(id) ON DELETE SET NULL
+);
+
 -- A student can re-upload proof after a rejection, hence one row per attempt.
 CREATE TABLE IF NOT EXISTS payments (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,5 +126,6 @@ CREATE TABLE IF NOT EXISTS settings (
 CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_phone           ON orders (customer_phone);
 CREATE INDEX IF NOT EXISTS idx_order_items_order      ON order_items (order_id);
+CREATE INDEX IF NOT EXISTS idx_uploads_order          ON uploads (order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_order         ON payments (order_id);
 CREATE INDEX IF NOT EXISTS idx_status_log_order       ON status_log (order_id, changed_at);

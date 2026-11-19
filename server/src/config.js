@@ -46,6 +46,9 @@ export const config = {
   backupsDir: pathFromRoot(process.env.BACKUPS_DIR, 'backups'),
   clientDistDir: path.join(rootDir, 'client', 'dist'),
 
+  // Optional override when LibreOffice is installed somewhere unusual.
+  sofficePath: process.env.SOFFICE_PATH?.trim() || '',
+
   // Owner account, used only by the init script.
   owner: {
     name: process.env.OWNER_NAME?.trim() || '',

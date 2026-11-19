@@ -64,15 +64,16 @@ export default function Home() {
         </p>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <button type="button" className="btn btn-primary" disabled>
+          <Link to="/order/new" className="btn btn-primary">
             Start an order
-          </button>
+          </Link>
           <button type="button" className="btn btn-secondary" disabled>
             My orders on this device
           </button>
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Ordering and payment are being built in the next milestones.
+          No account needed. Upload PDFs, Word files or photos and see the price before
+          ordering.
         </p>
       </section>
 

@@ -11,6 +11,8 @@ import helmet from 'helmet';
 import { config } from './config.js';
 import { publicRouter } from './routes/public.js';
 import { authRouter } from './auth/routes.js';
+import { uploadsRouter } from './routes/uploads.js';
+import { ordersRouter } from './routes/orders.js';
 
 export function createApp() {
   const app = express();
@@ -27,6 +29,11 @@ export function createApp() {
         directives: {
           // Avoid forcing HTTPS on http://localhost during local testing.
           'upgrade-insecure-requests': config.isProduction ? [] : null,
+          // PDF.js renders pages in a worker and may create blob: resources
+          // for fonts/images while drawing the preview.
+          'worker-src': ["'self'", 'blob:'],
+          'img-src': ["'self'", 'data:', 'blob:'],
+          'font-src': ["'self'", 'data:', 'blob:'],
         },
       },
     }),
@@ -37,6 +44,8 @@ export function createApp() {
 
   app.use('/api', publicRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/uploads', uploadsRouter);
+  app.use('/api/orders', ordersRouter);
 
   // Unknown /api routes should return JSON, never the React app.
   app.use('/api', (req, res) => {

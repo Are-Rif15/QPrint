@@ -25,6 +25,7 @@ test('schema creates every Phase 1 table', () => {
     'users',
     'orders',
     'order_items',
+    'uploads',
     'payments',
     'status_log',
     'price_config',

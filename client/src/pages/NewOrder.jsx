@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { addMyOrder } from '../lib/myOrders.js';
 import { formatRm, roundRm } from '../lib/money.js';
 import { isValidMalaysianPhone } from '../lib/phone.js';
 import PageLoader from '../components/PageLoader.jsx';
@@ -127,25 +128,31 @@ export default function NewOrder() {
           </p>
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left text-sm text-slate-600">
-            <p className="font-semibold text-slate-800">Saved for the shop</p>
+            <p className="font-semibold text-slate-800">Next: pay by QR</p>
             <p className="mt-1">
-              Your files are stored on the shop laptop and the order is marked{' '}
-              <span className="font-semibold">pending payment</span>. The QR payment step is
-              not enabled in this build yet.
+              Open your order to see the shop&apos;s payment QR, the exact amount and your
+              payment reference. Upload the receipt there and the shop will verify it.
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              We saved this order on this device so you can find it again under{' '}
+              <span className="font-semibold">My orders</span>.
             </p>
           </div>
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Link
+              to={`/order/${placedOrder.publicToken}`}
+              className="btn btn-primary"
+            >
+              Continue to payment
+            </Link>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-secondary"
               onClick={() => setPlacedOrder(null)}
             >
               Place another order
             </button>
-            <Link to="/" className="btn btn-secondary">
-              Back to home
-            </Link>
           </div>
         </div>
       </div>
@@ -260,6 +267,7 @@ export default function NewOrder() {
       });
 
       setPlacedOrder(result.order);
+      addMyOrder(result.order.publicToken);
       setItems([]);
       setDetails({ name: '', phone: '', notes: '' });
     } catch (err) {

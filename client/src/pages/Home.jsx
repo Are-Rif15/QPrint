@@ -21,8 +21,8 @@ const steps = [
 /**
  * Public landing page.
  *
- * In Milestone 1 the ordering flow does not exist yet, so the call-to-action
- * buttons are disabled placeholders. Milestone 2 replaces them.
+ * The shop status comes from the database. Ordering and order tracking are
+ * open to guests; only the owner signs in.
  */
 export default function Home() {
   const [shop, setShop] = useState(null);
@@ -67,9 +67,9 @@ export default function Home() {
           <Link to="/order/new" className="btn btn-primary">
             Start an order
           </Link>
-          <button type="button" className="btn btn-secondary" disabled>
+          <Link to="/orders" className="btn btn-secondary">
             My orders on this device
-          </button>
+          </Link>
         </div>
         <p className="mt-2 text-xs text-slate-500">
           No account needed. Upload PDFs, Word files or photos and see the price before

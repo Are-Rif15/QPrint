@@ -3,6 +3,8 @@ import Layout from './components/Layout.jsx';
 import RequireOwner from './components/RequireOwner.jsx';
 import Home from './pages/Home.jsx';
 import NewOrder from './pages/NewOrder.jsx';
+import MyOrders from './pages/MyOrders.jsx';
+import OrderTracking from './pages/OrderTracking.jsx';
 import NotFound from './pages/NotFound.jsx';
 import OwnerDashboard from './pages/OwnerDashboard.jsx';
 import OwnerLogin from './pages/OwnerLogin.jsx';
@@ -13,6 +15,8 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="order/new" element={<NewOrder />} />
+        <Route path="order/:token" element={<OrderTracking />} />
+        <Route path="orders" element={<MyOrders />} />
         <Route path="owner/login" element={<OwnerLogin />} />
 
         {/* RequireOwner renders an <Outlet /> only for signed-in owners. */}

@@ -5,9 +5,15 @@
  * The payment QR path and every order detail stay owner-only.
  */
 import { Router } from 'express';
+import fs from 'node:fs';
 import { getSettings } from '../lib/settings.js';
 import { getPrices } from '../lib/prices.js';
 import { isOfficeAvailable } from '../lib/office.js';
+import {
+  getPaymentQrPath,
+  paymentQrAvailable,
+  paymentQrContentType,
+} from '../lib/paymentQr.js';
 
 export const publicRouter = Router();
 
@@ -31,7 +37,22 @@ publicRouter.get('/public/shop', (req, res) => {
     // DOCX/JPG/PNG uploads need LibreOffice on this laptop. The order page
     // uses this only to show a helpful notice; the upload endpoint enforces it.
     officeAvailable: isOfficeAvailable(),
+    // The tracking page shows the QR instead of a broken image when unset.
+    paymentQrAvailable: paymentQrAvailable(),
   });
+});
+
+// The shop's DuitNow QR. Public by design: the same image hangs in the shop.
+// Only files inside storage/qr are ever served (see lib/paymentQr.js).
+publicRouter.get('/public/payment-qr', (req, res) => {
+  const qrPath = getPaymentQrPath();
+  if (!qrPath) {
+    return res.status(404).json({ error: 'The payment QR is not configured yet.' });
+  }
+
+  res.setHeader('Content-Type', paymentQrContentType(qrPath));
+  res.setHeader('Cache-Control', 'no-store');
+  fs.createReadStream(qrPath).pipe(res);
 });
 
 publicRouter.get('/public/pricing', (req, res) => {

@@ -13,6 +13,7 @@ import { publicRouter } from './routes/public.js';
 import { authRouter } from './auth/routes.js';
 import { uploadsRouter } from './routes/uploads.js';
 import { ordersRouter } from './routes/orders.js';
+import { orderTrackingRouter } from './routes/orderTracking.js';
 
 export function createApp() {
   const app = express();
@@ -46,6 +47,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/uploads', uploadsRouter);
   app.use('/api/orders', ordersRouter);
+  app.use('/api/orders', orderTrackingRouter);
 
   // Unknown /api routes should return JSON, never the React app.
   app.use('/api', (req, res) => {

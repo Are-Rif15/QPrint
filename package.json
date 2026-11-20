@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "init:db": "node server/src/scripts/init-db.js",
+    "set:payment-qr": "node server/src/scripts/set-payment-qr.js",
     "dev": "node scripts/dev.js",
     "dev:server": "node --watch server/src/index.js",
     "dev:client": "npm run dev --workspace client",

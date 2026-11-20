@@ -20,6 +20,7 @@ import { db } from '../db.js';
 import { storagePaths } from '../lib/storage.js';
 import { getSetting } from '../lib/settings.js';
 import { detectFileKind, extensionOf } from '../lib/filetype.js';
+import { maxUploadBytes, maxUploadMb } from '../lib/uploadLimits.js';
 import { countPdfPages } from '../lib/pdf.js';
 import {
   convertToPdf,
@@ -28,17 +29,6 @@ import {
 } from '../lib/office.js';
 
 export const uploadsRouter = Router();
-
-function maxUploadMb() {
-  const configured = Number.parseFloat(getSetting('max_upload_mb', '10'));
-  if (!Number.isFinite(configured) || configured <= 0) return 10;
-  // Keep a hard ceiling so a bad setting cannot exhaust memory.
-  return Math.min(Math.max(configured, 1), 50);
-}
-
-function maxUploadBytes() {
-  return Math.round(maxUploadMb() * 1024 * 1024);
-}
 
 function shopIsOpen() {
   return getSetting('shop_open', 'true') === 'true';

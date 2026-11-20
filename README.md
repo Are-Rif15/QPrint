@@ -8,8 +8,8 @@ everything from one laptop connected to an HP Smart Tank 520.
 
 - **Milestone 1 (done):** project setup, database, owner login, route guard, home page
 - **Milestone 2 (done):** file uploads, print options, live pricing, PDF preview
-- Milestone 3: QR payment, order tracking, "my orders on this device"
-- Milestone 4: owner dashboard, payments, settings
+- **Milestone 3 (done):** QR payment page, proof upload, order tracking, "my orders on this device"
+- Milestone 4: owner dashboard, payment verification, settings
 - Milestone 5: print queue and printer integration
 - Milestone 6: cleanup jobs, backups, security hardening
 
@@ -23,7 +23,8 @@ draws the preview in the browser. Word documents and photos are converted to
 PDF with **LibreOffice** (headless), because the printer only accepts PDF.
 
 No student accounts in Phase 1: students order as guests and track their order
-with a long random link.
+with a long random link. The link is saved in the browser so "My orders"
+reopens it on the same device.
 
 ## Requirements
 
@@ -45,19 +46,24 @@ with a long random link.
 
 ```
 client/                  React app (Vite, Tailwind)
-  src/pages/             Home, NewOrder, OwnerLogin, OwnerDashboard, NotFound
+  src/pages/             Home, NewOrder, OrderTracking, MyOrders, OwnerLogin,
+                         OwnerDashboard, NotFound
   src/auth/              AuthProvider (session restore via /api/auth/me)
   src/components/        Layout, RequireOwner, ShopStatusBanner, PageLoader,
-                         OrderItemCard, PdfPreview (lazy-loaded)
-  src/lib/               money formatting, client-side phone check
+                         OrderItemCard, PdfPreview (lazy-loaded), StatusBadge,
+                         StatusTimeline, PaymentProofUpload
+  src/lib/               money formatting, client-side phone check, order status
+                         labels, date formatting, localStorage order list
 server/
   src/schema.sql         Full Phase 1 database schema
   src/scripts/init-db.js Creates tables + seeds owner, prices, settings
+  src/scripts/set-payment-qr.js  Copies the owner's DuitNow QR into storage
   src/auth/              JWT, cookie, owner-only middleware, login routes
-  src/business/          pricing and status rules (+ tests)
-  src/routes/            public shop/pricing, uploads, orders
+  src/business/          pricing, status and payment rules (+ tests)
+  src/routes/            public shop/pricing, uploads, orders, order tracking
   src/lib/               money, storage, settings, filetype, phone, pdf,
-                         office (LibreOffice conversion)
+                         office (LibreOffice conversion), payment QR helpers,
+                         public order view, tokens, upload limits
   src/tests/             node:test suites
 server/data/qprint.db    SQLite database (gitignored)
 storage/                 Uploaded documents / proofs / QR image (gitignored)
@@ -103,7 +109,19 @@ scripts/dev.js           Runs API + frontend together for development
    npm run init:db -- --reset-owner-password
    ```
 
-4. Start development mode:
+4. Set the shop's DuitNow payment QR (temporary helper until the owner
+   settings page arrives in Milestone 4):
+
+   ```powershell
+   npm run set:payment-qr -- "C:\path\to\duitnow-qr.png"
+   ```
+
+   PNG and JPG are accepted; the file is checked by its real contents, copied
+   into `storage/qr/` and recorded in `settings.payment_qr_path`. Until a QR is
+   set, the payment page shows a "pay at the counter" notice instead of an
+   image.
+
+5. Start development mode:
 
    ```powershell
    npm run dev
@@ -112,7 +130,7 @@ scripts/dev.js           Runs API + frontend together for development
    - App: <http://localhost:5173>
    - API: <http://localhost:4000> (Vite proxies `/api` here)
 
-5. Sign in at <http://localhost:5173/owner/login> with the values from `.env`.
+6. Sign in at <http://localhost:5173/owner/login> with the values from `.env`.
 
 ## Scripts
 
@@ -122,7 +140,8 @@ scripts/dev.js           Runs API + frontend together for development
 | `npm run dev:server` | API only, restarts on file changes |
 | `npm run dev:client` | Vite only |
 | `npm run init:db` | Apply schema and seed owner / prices / settings |
-| `npm test` | Run pricing, status, validation and schema tests |
+| `npm run set:payment-qr -- <path>` | Validate and install the shop's DuitNow QR image |
+| `npm test` | Run pricing, status, payment, token and validation tests |
 | `npm run build` | Build the React app into `client/dist` |
 | `npm start` | Start the server; serves the built app too when `client/dist` exists |
 
@@ -158,8 +177,8 @@ To expose it to students, point a Cloudflare Tunnel at `http://localhost:4000`
    # 401
    ```
 
-6. `npm test` - all tests pass (Milestone 2 adds pricing, phone, file-type and
-   PDF tests; 32 in total).
+6. `npm test` - all tests pass (the suite grows with each milestone;
+   39 after Milestone 3).
 
 ## Verify Milestone 2
 
@@ -180,7 +199,8 @@ To expose it to students, point a Cloudflare Tunnel at `http://localhost:4000`
    counts and the `price_config` table.
 7. Close the shop first (owner settings in Milestone 4; for now update
    `settings.shop_open` to `false`) and confirm uploads and orders return 403.
-8. `npm test` - 32 tests pass.
+8. `npm test` - all tests pass (32 at the end of Milestone 2; 39 after
+   Milestone 3).
 
 Useful API checks:
 
@@ -194,6 +214,65 @@ curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:4000/api/uploads/<token>
 
 After the order is created, the same preview URL returns **404**: claimed
 uploads are never downloadable from order pages.
+
+## Verify Milestone 3
+
+1. Set a payment QR with `npm run set:payment-qr -- <image>` (or leave it unset
+   and confirm the page shows the "pay at the counter" notice).
+2. Start the app and place an order, then open **Continue to payment**. The
+   tracking page shows the exact amount, the reference (`QP-000001` style) and
+   the shop QR. Tap the QR to enlarge it for scanning; close with the Close
+   button, Escape, or by tapping the dark background.
+3. Upload a JPG, PNG or PDF proof:
+   - the status becomes **Waiting for verification** and the page shows
+     "Proof received";
+   - the upload form disappears and the timeline records both steps;
+   - the order stays in `pending_verification` because owner verification is
+     part of Milestone 4.
+4. Open **My orders** (`/orders`). The order is listed from this browser's
+   `localStorage`. **View order** reopens it; **Forget** removes it; clearing
+   site data forgets everything.
+5. On a `pending_payment` or `rejected` order, click **Cancel order**. The
+   status becomes **Cancelled**, the page says no payment is needed, and the
+   cancel button is gone.
+6. To see the post-verification view before Milestone 4, simulate the owner
+   check in SQLite (stop nothing; the server can stay up):
+
+   ```powershell
+   # Replace the reference and run in a SQLite client, or adapt the ids.
+   UPDATE orders SET status = 'queued' WHERE id = 2;
+   UPDATE payments SET status = 'verified',
+          verified_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE order_id = 2 AND status = 'pending';
+   INSERT INTO status_log (order_id, status) VALUES (2, 'queued');
+   ```
+
+   Refresh the tracking page: it shows **Queued for printing**, pickup details
+   and no cancel button. The page polls every 15 s while the order is active and
+   stops once it is collected or cancelled.
+
+Useful API checks (replace `<token>` with a real 64-character tracking token):
+
+```powershell
+# Public order view - no phone numbers, file paths or upload tokens
+curl.exe -s http://localhost:4000/api/orders/<token>
+
+# Payment proof (JPG/PNG/PDF, field name "proof")
+curl.exe -s -F "proof=@C:\path\to\receipt.png;type=image/png" `
+  http://localhost:4000/api/orders/<token>/payments
+
+# Cancel before verification
+curl.exe -s -X POST http://localhost:4000/api/orders/<token>/cancel
+
+# Batch lookup for "My orders" (max 25 tokens)
+curl.exe -s -H "Content-Type: application/json" `
+  -d "{\"tokens\":[\"<token>\"]}" http://localhost:4000/api/orders/lookup
+```
+
+A malformed or unknown token returns **404**. A second proof while one is
+waiting returns **409**, and the sixth proof returns **429**.
+
+`npm test` - 39 tests pass (pricing, status, payments, tokens and upload rules).
 
 ## Security notes (current state)
 
@@ -212,6 +291,15 @@ uploads are never downloadable from order pages.
   files.
 - Prices are recalculated on the server at order creation; client prices and
   page counts are ignored.
+- Tracking links are capability URLs: 64 random hex characters, validated
+  before any query. The public order view never includes phone numbers, file
+  paths or internal upload tokens, and payment proofs are not served publicly.
+- Payment proofs are checked by magic bytes (JPG/PNG/PDF only), copied under a
+  random name and capped at 5 attempts per order. Cancellation and proof upload
+  re-check the order status inside a transaction, so a double click cannot skip
+  a step.
+- The payment QR route serves only files inside `storage/qr`; the setting cannot
+  be used to read arbitrary files.
 - `.env`, `storage/`, `backups/`, `server/data/` and build output are gitignored.
 
 ## Troubleshooting
@@ -224,6 +312,14 @@ uploads are never downloadable from order pages.
   has expired, the file was already used in an order, or the file was deleted
   from `storage/`. Upload it again. A blocked `pdf.worker` request usually means
   a CSP/proxy problem: the app allows `worker-src blob:` already.
+- **"The shop has not added its payment QR yet"** - run
+  `npm run set:payment-qr -- "C:\path\to\qr.png"` with a real PNG or JPG (not a
+  screenshot renamed to `.png`). The page picks it up on refresh; no restart is
+  needed.
+- **"The proof must be a JPG, PNG or PDF file..."** - the file contents must
+  match its extension. Re-save or re-export the receipt, and keep it under
+  `max_upload_mb`. A proof is only accepted while the order is awaiting payment
+  or after a rejection, with at most 5 attempts.
 - **"The database ... is not initialised"** - run `npm run init:db`.
 - **"JWT_SECRET is missing or too short"** - copy `.env.example` to `.env` and
   generate a long random secret (see Setup).
